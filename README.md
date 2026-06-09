@@ -1,59 +1,59 @@
 # TruyenQQ Auto Check-in Bot 🤖
 
-Bot tự động điểm danh hàng ngày trên TruyenQQ sử dụng **Python**, **Playwright**, và **GitHub Actions**. Bot hoạt động 24/7 hoàn toàn miễn phí trên Cloud, tự động cập nhật tên miền mới nhất và không yêu cầu treo máy.
+An automated daily check-in bot for TruyenQQ built with **Python**, **Playwright**, and **GitHub Actions**. This bot runs 24/7 completely free in the cloud, automatically updates to the latest active domain, and requires no local setup.
 
-## ✨ Tính năng nổi bật
-- **Chạy tự động ngầm 100%**: Sử dụng GitHub Actions để chạy bot mỗi ngày (mặc định vào 07:30 sáng).
-- **Tự động dò tên miền mới**: Bot tự động quét và tìm tên miền TruyenQQ mới nhất đang hoạt động (ví dụ `truyenqqko.com`, v.v.).
-- **Auto Login chống hết hạn Cookie**: Sử dụng Email và Mật khẩu để tự động giả lập người dùng đăng nhập, giải quyết triệt để vấn đề Cookie bị hết hạn hoặc reset.
-- **Thông báo đa nền tảng**: Tự động báo cáo kết quả điểm danh qua Telegram hoặc Discord.
-
----
-
-## 🚀 Hướng dẫn cài đặt cho người mới
-
-Bạn không cần biết code, không cần cài đặt ứng dụng gì trên máy tính. Chỉ cần làm theo 2 bước sau:
-
-### Bước 1: Fork Repository này về tài khoản của bạn
-1. Đăng nhập vào tài khoản GitHub của bạn.
-2. Nhìn lên góc trên cùng bên phải của trang web này, bấm vào nút **Fork**.
-3. Bấm **Create fork** để copy toàn bộ mã nguồn này về tài khoản cá nhân của bạn.
-
-### Bước 2: Thiết lập Tài khoản đăng nhập (Secrets)
-Để bot biết cần điểm danh cho tài khoản nào, bạn cần cung cấp thông tin đăng nhập cho bot. GitHub sẽ mã hóa và giấu kín thông tin này, **ngay cả bạn cũng không thể xem lại được mật khẩu sau khi đã nhập**.
-
-1. Vào trang Repository mà bạn vừa Fork về.
-2. Bấm vào tab **Settings** (Cài đặt) trên menu ngang.
-3. Ở cột menu bên trái, cuộn xuống phần **Security**, chọn **Secrets and variables** -> **Actions**.
-4. Bấm nút màu xanh **New repository secret** để thêm 2 biến bắt buộc sau:
-   - **Tên:** `TRUYENQQ_EMAIL` | **Giá trị:** *Email tài khoản TruyenQQ của bạn*
-   - **Tên:** `TRUYENQQ_PASSWORD` | **Giá trị:** *Mật khẩu tài khoản TruyenQQ của bạn*
-
-*(Nhớ nhập chính xác tên biến ghi hoa toàn bộ như trên nhé).*
-
-### Bước 3: (Tùy chọn) Nhận thông báo điểm danh
-Nếu bạn muốn bot gửi tin nhắn báo cáo kết quả mỗi ngày, hãy tạo thêm các Secret sau:
-
-**Nếu dùng Discord:**
-- **Tên:** `DISCORD_WEBHOOK_URL` | **Giá trị:** *Đường link Webhook của kênh Discord của bạn*
-
-**Nếu dùng Telegram:**
-- **Tên:** `TELEGRAM_BOT_TOKEN` | **Giá trị:** *Token con bot lấy từ @BotFather*
-- **Tên:** `TELEGRAM_CHAT_ID` | **Giá trị:** *ID Telegram của bạn (Lấy từ @userinfobot)*
+## ✨ Key Features
+- **100% Automated Background Execution**: Uses GitHub Actions to run the bot daily (default is 00:30 UTC / 07:30 AM ICT).
+- **Auto Domain Discovery**: The bot automatically scrapes and finds the latest active TruyenQQ domain (e.g., `truyenqqko.com`, etc.).
+- **Anti-Expiration Auto Login**: Uses your Email and Password to securely log in by simulating a real user browser session, completely solving the issue of expired or reset cookies.
+- **Cross-Platform Notifications**: Automatically sends check-in results via Telegram or Discord.
 
 ---
 
-## 🛠️ Cách chạy thử Bot ngay lập tức
-Mặc định bot sẽ tự động chạy vào lúc 07:30 sáng giờ VN. Để kiểm tra bot có hoạt động hay không ngay bây giờ:
-1. Chuyển sang tab **Actions** trên Repository của bạn.
-2. (Lần đầu tiên) Bấm nút xanh **"I understand my workflows, go ahead and enable them"**.
-3. Ở cột bên trái, bấm vào **TruyenQQ Daily Check-in**.
-4. Bấm nút xổ xuống **Run workflow** (ở bên phải) -> Bấm tiếp **Run workflow** màu xanh.
-5. Chờ vài giây và tải lại trang, bấm vào luồng đang chạy để xem nhật ký (Log) điểm danh.
+## 🚀 Setup Guide for Beginners
 
-## ⚠️ Khuyến cáo bảo mật
-- Mã nguồn này được cung cấp hoàn toàn mã nguồn mở, bạn có thể tự do kiểm tra mã nguồn tại file `main.py`. Mật khẩu của bạn không bị gửi cho bất kỳ ai ngoài máy chủ của TruyenQQ.
-- Nếu không an tâm, bạn có thể đăng ký một tài khoản TruyenQQ phụ bằng Email rác để chạy thử.
+You don't need any coding knowledge or local installations. Just follow these 2 steps:
+
+### Step 1: Fork this Repository
+1. Log in to your GitHub account.
+2. Look at the top right corner of this page and click the **Fork** button.
+3. Click **Create fork** to copy this entire repository to your personal account.
+
+### Step 2: Configure Login Credentials (Secrets)
+To let the bot know which account to check in for, you need to provide your login credentials. GitHub will heavily encrypt and hide this information; **even you won't be able to view the password after entering it**.
+
+1. Go to the Repository you just forked.
+2. Click on the **Settings** tab in the horizontal menu.
+3. In the left sidebar menu, scroll down to the **Security** section, select **Secrets and variables** -> **Actions**.
+4. Click the green **New repository secret** button to add the following 2 mandatory variables:
+   - **Name:** `TRUYENQQ_EMAIL` | **Secret:** *Your TruyenQQ account email*
+   - **Name:** `TRUYENQQ_PASSWORD` | **Secret:** *Your TruyenQQ account password*
+
+*(Make sure to enter the variable names exactly as shown above, in ALL CAPS).*
+
+### Step 3: (Optional) Receive Check-in Notifications
+If you want the bot to send you a daily report message, create the following Secrets:
+
+**For Discord:**
+- **Name:** `DISCORD_WEBHOOK_URL` | **Secret:** *Your Discord channel Webhook URL*
+
+**For Telegram:**
+- **Name:** `TELEGRAM_BOT_TOKEN` | **Secret:** *Your bot token from @BotFather*
+- **Name:** `TELEGRAM_CHAT_ID` | **Secret:** *Your Telegram ID (Get it from @userinfobot)*
 
 ---
-*Phát triển bởi [Tên của bạn/HiepNgoc2006]*
+
+## 🛠️ How to Test the Bot Immediately
+By default, the bot runs automatically every day. To check if the bot works right now:
+1. Go to the **Actions** tab on your Repository.
+2. (First time only) Click the green button **"I understand my workflows, go ahead and enable them"**.
+3. On the left sidebar, click **TruyenQQ Daily Check-in**.
+4. Click the dropdown button **Run workflow** (on the right) -> Click the green **Run workflow** button.
+5. Wait a few seconds and refresh the page, then click on the running workflow to view the check-in logs.
+
+## ⚠️ Security Notice
+- This source code is completely open-source. You can freely inspect the code in the `main.py` file. Your password is never sent to anyone other than the official TruyenQQ login servers.
+- If you are still concerned, you can register a secondary TruyenQQ account using a throwaway email to test it out.
+
+---
+*Developed by hiep and AI*
