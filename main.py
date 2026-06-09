@@ -4,7 +4,7 @@ import time
 import requests
 import re
 from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
+from playwright_stealth import stealth
 
 # Sửa lỗi in emoji trên Windows
 if sys.stdout.encoding != 'utf-8':
@@ -85,7 +85,7 @@ def check_in():
             context.add_cookies(cookies)
 
         page = context.new_page()
-        stealth_sync(page)
+        stealth(page)
 
         try:
             page.goto(f"{latest_domain}/coins", timeout=60000)
