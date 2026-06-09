@@ -90,7 +90,13 @@ def check_in():
             page.wait_for_load_state("networkidle")
 
             # Xử lý đăng nhập tự động
+            print(f"Tiêu đề trang: {page.title()}")
+            if "Cloudflare" in page.title() or "Just a moment" in page.title():
+                print("⚠️ CẢNH BÁO: Phát hiện Cloudflare chặn IP của GitHub Actions!")
+            
             login_btn = page.locator("button:has-text('Đăng nhập'), button:has-text('Đăng Nhập'), .btn-login").first
+            print("Đang tìm nút Đăng nhập...")
+            
             if login_btn.count() > 0 and login_btn.is_visible():
                 if email and password:
                     print("🔑 Tiến hành đăng nhập tự động bằng Email/Password...")
