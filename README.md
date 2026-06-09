@@ -56,4 +56,3 @@ By default, the bot runs automatically every day. To check if the bot works righ
 - If you are still concerned, you can register a secondary TruyenQQ account using a throwaway email to test it out.
 
 ---
-*Developed by hiep and AI*
