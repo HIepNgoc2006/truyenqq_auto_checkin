@@ -96,22 +96,26 @@ def check_in():
             if "Cloudflare" in page.title() or "Just a moment" in page.title():
                 print("⚠️ CẢNH BÁO: Phát hiện Cloudflare chặn IP của GitHub Actions!")
             
-            login_btn = page.locator("button:has-text('Đăng nhập'), button:has-text('Đăng Nhập'), .btn-login").first
+            login_btn = page.locator("button:has-text('Đăng nhập'), button:has-text('Đăng Nhập'), .btn-login, a:has-text('Đăng nhập'), a[title='Đăng nhập']").first
             print("Đang tìm nút Đăng nhập...")
             
             if login_btn.count() > 0 and login_btn.is_visible():
                 if email and password:
                     print("🔑 Tiến hành đăng nhập tự động bằng Email/Password...")
                     login_btn.click()
-                    time.sleep(2)
                     
-                    email_input = page.locator("#email_login")
-                    password_input = page.locator("#password_login")
+                    # Đợi form đăng nhập xuất hiện
+                    email_input = page.locator("#email_login, input[type='email']").first
+                    email_input.wait_for(state="visible", timeout=15000)
+                    
+                    password_input = page.locator("#password_login, input[type='password']").first
                     
                     email_input.fill(email)
                     password_input.fill(password)
                     
-                    page.locator(".button_login").click()
+                    # Tìm và click nút submit đăng nhập
+                    submit_btn = page.locator(".button_login, button:has-text('Đăng Nhập'), button[type='submit']").first
+                    submit_btn.click()
                     time.sleep(5)
                     
                     page.goto(f"{latest_domain}/coins", timeout=60000)
@@ -121,9 +125,9 @@ def check_in():
                     sys.exit(1)
 
             # Tìm nút điểm danh
-            checkin_button = page.locator("text=/Điểm danh/i")
-            if checkin_button.count() > 0 and checkin_button.first.is_visible():
-                checkin_button.first.click()
+            checkin_button = page.locator("button:has-text('Điểm danh'), a:has-text('Điểm danh'), text=/Điểm danh/i").first
+            if checkin_button.count() > 0 and checkin_button.is_visible():
+                checkin_button.click()
                 time.sleep(5)
                 send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
             else:
