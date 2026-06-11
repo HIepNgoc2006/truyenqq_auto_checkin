@@ -125,7 +125,7 @@ def check_in():
                     sys.exit(1)
 
             # Tìm nút điểm danh
-            checkin_button = page.locator("button:has-text('Điểm danh'), a:has-text('Điểm danh'), text=/Điểm danh/i").first
+            checkin_button = page.locator("button:has-text('Điểm danh'), a:has-text('Điểm danh')").first
             if checkin_button.count() > 0 and checkin_button.is_visible():
                 checkin_button.click()
                 time.sleep(5)
