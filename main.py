@@ -124,14 +124,33 @@ def check_in():
                     send_notification("❌ Đăng nhập thất bại: Chưa cấu hình Email và Mật khẩu (Cookie có thể đã hết hạn).")
                     sys.exit(1)
 
-            # Tìm nút điểm danh
-            checkin_button = page.locator("button:has-text('Điểm danh'), a:has-text('Điểm danh')").first
-            if checkin_button.count() > 0 and checkin_button.is_visible():
-                checkin_button.click()
-                time.sleep(5)
-                send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
+            # Xử lý giao diện Nhận thưởng / Điểm danh mới trên trang /coins
+            print("Đang tìm tab Nhiệm vụ hoặc nút Điểm danh...")
+            
+            # Nếu có tab Nhiệm vụ (giao diện mới)
+            nhiem_vu_tab = page.locator("text='Nhiệm vụ'").first
+            if nhiem_vu_tab.count() > 0 and nhiem_vu_tab.is_visible():
+                print("Tìm thấy tab Nhiệm vụ, đang chuyển tab...")
+                nhiem_vu_tab.click()
+                time.sleep(2)
+                
+                # Tìm nút Thực hiện cạnh Điểm danh hàng ngày
+                thuc_hien_btn = page.locator("text='Thực hiện', button:has-text('Thực hiện')").first
+                if thuc_hien_btn.count() > 0 and thuc_hien_btn.is_visible():
+                    thuc_hien_btn.click()
+                    time.sleep(5)
+                    send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
+                else:
+                    send_notification("⚠️ Không tìm thấy nút Thực hiện. (Có thể bạn đã điểm danh rồi).")
             else:
-                send_notification("⚠️ Không tìm thấy nút Điểm danh. (Có thể bạn đã điểm danh rồi hoặc web đổi giao diện).")
+                # Fallback phiên bản cũ
+                checkin_button = page.locator("button:has-text('Điểm danh'), a:has-text('Điểm danh')").first
+                if checkin_button.count() > 0 and checkin_button.is_visible():
+                    checkin_button.click()
+                    time.sleep(5)
+                    send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
+                else:
+                    send_notification("⚠️ Không tìm thấy tab Nhiệm vụ hoặc nút Điểm danh. (Có thể bạn đã điểm danh rồi hoặc web đổi giao diện).")
 
         except Exception as e:
             send_notification(f"❌ Lỗi trong quá trình chạy script: {e}")
