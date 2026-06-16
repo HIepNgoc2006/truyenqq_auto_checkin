@@ -131,26 +131,43 @@ def check_in():
             nhiem_vu_tab = page.locator("text='Nhiệm vụ'").first
             if nhiem_vu_tab.count() > 0 and nhiem_vu_tab.is_visible():
                 print("Tìm thấy tab Nhiệm vụ, đang chuyển tab...")
-                nhiem_vu_tab.click()
+                nhiem_vu_tab.evaluate("node => node.click()")
                 time.sleep(2)
                 
                 # Tìm nút Thực hiện cạnh Điểm danh hàng ngày
                 thuc_hien_btn = page.locator("text='Thực hiện', button:has-text('Thực hiện')").first
                 if thuc_hien_btn.count() > 0 and thuc_hien_btn.is_visible():
-                    thuc_hien_btn.click()
+                    thuc_hien_btn.evaluate("node => node.click()")
                     time.sleep(5)
                     send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
                 else:
                     send_notification("⚠️ Không tìm thấy nút Thực hiện. (Có thể bạn đã điểm danh rồi).")
             else:
-                # Fallback phiên bản cũ
-                checkin_button = page.locator("button:has-text('Điểm danh'), a:has-text('Điểm danh')").first
-                if checkin_button.count() > 0 and checkin_button.is_visible():
-                    checkin_button.click()
+                # Fallback tìm nút điểm danh trực tiếp
+                checkin_button = None
+                for text_to_find in ["Điểm danh", "Nhận thưởng", "Nhận xu", "Điểm Danh", "ĐIỂM DANH"]:
+                    btns = page.get_by_text(text_to_find)
+                    for i in range(btns.count()):
+                        if btns.nth(i).is_visible():
+                            checkin_button = btns.nth(i)
+                            break
+                    if checkin_button:
+                        break
+
+                if checkin_button:
+                    checkin_button.evaluate("node => node.click()")
                     time.sleep(5)
+                    # Bấm xác nhận nếu có
+                    try:
+                        confirm_btn = page.locator("text='Đồng ý', text='Xác nhận', text='OK', button:has-text('Đồng ý')").first
+                        if confirm_btn.count() > 0 and confirm_btn.is_visible():
+                            confirm_btn.evaluate("node => node.click()")
+                            time.sleep(2)
+                    except:
+                        pass
                     send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
                 else:
-                    send_notification("⚠️ Không tìm thấy tab Nhiệm vụ hoặc nút Điểm danh. (Có thể bạn đã điểm danh rồi hoặc web đổi giao diện).")
+                    send_notification("⚠️ Không tìm thấy tab Nhiệm vụ hoặc nút Điểm danh. (Có thể bạn đã điểm danh rồi hoặc bị che khuất).")
 
         except Exception as e:
             send_notification(f"❌ Lỗi trong quá trình chạy script: {e}")
