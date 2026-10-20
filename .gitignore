@@ -22,6 +22,10 @@ var/
 .env
 .venv
 venv/
+.browsers/
+logs/
+.lock
+.cache/
 
 # Playwright
 test-results/

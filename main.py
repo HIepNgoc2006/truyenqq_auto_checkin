@@ -67,7 +67,7 @@ def check_in():
     password = os.environ.get("TRUYENQQ_PASSWORD", "").strip()
 
     if not cookie_str and not (email and password):
-        msg = "❌ Lỗi: Bạn phải cấu hình TRUYENQQ_COOKIE hoặc (TRUYENQQ_EMAIL và TRUYENQQ_PASSWORD) trong GitHub Secrets."
+        msg = "❌ Lỗi: Bạn phải cấu hình TRUYENQQ_COOKIE hoặc (TRUYENQQ_EMAIL và TRUYENQQ_PASSWORD) trong biến môi trường (file .env hoặc GitHub Secrets)."
         send_notification(msg)
         sys.exit(1)
 
@@ -97,7 +97,7 @@ def check_in():
             # Xử lý đăng nhập tự động
             print(f"Tiêu đề trang: {page.title()}")
             if "Cloudflare" in page.title() or "Just a moment" in page.title():
-                print("⚠️ CẢNH BÁO: Phát hiện Cloudflare chặn IP của GitHub Actions!")
+                print("⚠️ CẢNH BÁO: Phát hiện Cloudflare chặn IP hiện tại!")
             
             login_btn = page.locator("button:has-text('Đăng nhập'), button:has-text('Đăng Nhập'), .btn-login, a:has-text('Đăng nhập'), a[title='Đăng nhập']").first
             print("Đang tìm nút Đăng nhập...")
@@ -117,7 +117,7 @@ def check_in():
                     password_input.fill(password)
                     
                     # Tìm và click nút submit đăng nhập
-                    submit_btn = page.locator(".button_login, button:has-text('Đăng Nhập'), button[type='submit']").first
+                    submit_btn = page.locator("#popup_content button.button_login, .popup-signin button.button_login").first
                     submit_btn.click()
                     time.sleep(5)
                     
