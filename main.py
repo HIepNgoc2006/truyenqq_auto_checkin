@@ -3,6 +3,7 @@ import sys
 import time
 import requests
 import re
+from urllib.parse import urlparse
 from playwright.sync_api import sync_playwright
 from playwright_stealth import Stealth
 
@@ -13,6 +14,8 @@ if sys.stdout.encoding != 'utf-8':
 USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 FALLBACK_DOMAIN = "https://truyenqqko.com"
 DOMAIN_SOURCE = "https://truyenqq.link"
+DOMAIN_SOURCES = [DOMAIN_SOURCE, "https://truyenqq.bio"]
+FALLBACK_DOMAINS = [FALLBACK_DOMAIN, "https://truyenqq.bio"]
 DOMAIN_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".domain")
 
 def send_notification(message):
@@ -38,26 +41,67 @@ def send_notification(message):
             print(f"⚠️ Lỗi gửi thông báo Discord: {e}")
 
 
+def _origin(url):
+    """Trả về scheme://host của URL, bỏ path/query."""
+    parsed = urlparse(url)
+    if parsed.scheme in ("http", "https") and parsed.netloc:
+        return f"{parsed.scheme}://{parsed.netloc}"
+    return ""
+
+
 def _domain_alive(domain):
-    """Kiểm tra domain còn phục vụ trang TruyenQQ thật hay không."""
+    """Kiểm tra domain còn phục vụ trang TruyenQQ thật; trả domain cuối sau redirect."""
     try:
-        res = requests.get(domain, timeout=15, headers={"User-Agent": USER_AGENT})
+        res = requests.get(
+            domain, timeout=15, headers={"User-Agent": USER_AGENT}, allow_redirects=True
+        )
         if res.status_code != 200:
-            return False
+            return ""
         text = res.text.lower()
-        return "truyenqq" in text or "truyện" in text
+        if "truyenqq" not in text and "truyện" not in text:
+            return ""
+        return _origin(res.url) or domain
     except Exception:
-        return False
+        return ""
 
 
 def _extract_domains(html):
-    """Lấy mọi domain có link /lich-su, ưu tiên domain chứa 'truyenqq'."""
+    """Trích domain mới từ link /lich-su, câu thông báo, canonical/og:url và URL truyenqq."""
     found = []
+
+    def add(url):
+        origin = _origin(url)
+        if not origin or origin == DOMAIN_SOURCE or origin in found:
+            return
+        found.append(origin)
+
+    # 1. Link lịch sử - dấu hiệu chính của trang TruyenQQ
     for domain in re.findall(r'href="(https?://[^/"]+)/lich-su"', html):
-        domain = domain.rstrip("/")
-        if domain == DOMAIN_SOURCE or domain in found:
+        add(domain)
+
+    # 2. Câu thông báo dạng "tên miền mới nhất ... là <domain>"
+    for match in re.finditer(
+        r"tên miền mới nhất[^<]{0,150}?(?:là|:)\s*(?:https?://)?([a-z0-9.-]+\.[a-z]{2,})",
+        html,
+        re.I,
+    ):
+        add("https://" + match.group(1))
+
+    # 3. canonical / og:url
+    for match in re.finditer(
+        r'(?:rel="canonical"[^>]*href="|property="og:url"[^>]*content=")(https?://[^"]+)"',
+        html,
+        re.I,
+    ):
+        add(match.group(1))
+
+    # 4. Mọi URL chứa "truyenqq", bỏ subdomain CDN/tĩnh
+    for host in re.findall(r"https?://([a-z0-9.-]*truyenqq[a-z0-9.-]*)", html, re.I):
+        host = host.lower()
+        if host.startswith(("st.", "cdn.", "static.", "img.", "api.")):
             continue
-        found.append(domain)
+        add("https://" + host)
+
     found.sort(key=lambda d: 0 if "truyenqq" in d.lower() else 1)
     return found
 
@@ -82,38 +126,61 @@ def get_latest_domain():
     headers = {"User-Agent": USER_AGENT}
     candidates = []
 
-    # 1. Dò domain mới từ truyenqq.link, retry 3 lần
-    for attempt in range(1, 4):
-        try:
-            res = requests.get(DOMAIN_SOURCE, timeout=20, headers=headers)
-            if res.status_code == 200:
-                candidates = _extract_domains(res.text)
-                if candidates:
-                    print(f"🔎 Domain ứng viên: {', '.join(candidates[:5])}")
-                    break
-            print(f"⚠️ Lần {attempt}: truyenqq.link trả HTTP {res.status_code}.")
-        except Exception as e:
-            print(f"⚠️ Lần {attempt}: không truy vấn được truyenqq.link ({e}).")
-        if attempt < 3:
-            time.sleep(2 * attempt)
+    # 1. Dò từ các nguồn tổng hợp (blog truyenqq.link, alias truyenqq.bio)
+    for source in DOMAIN_SOURCES:
+        for attempt in range(1, 4):
+            try:
+                res = requests.get(source, timeout=20, headers=headers)
+                if res.status_code == 200:
+                    candidates = _extract_domains(res.text)
+                    if candidates:
+                        print(f"🔎 Nguồn {source}: {', '.join(candidates[:5])}")
+                        break
+                print(f"⚠️ Lần {attempt}: {source} trả HTTP {res.status_code}.")
+            except Exception as e:
+                print(f"⚠️ Lần {attempt}: không truy vấn được {source} ({e}).")
+            if attempt < 3:
+                time.sleep(2 * attempt)
+        if candidates:
+            break
 
-    # 2. Chọn domain đầu tiên còn sống
+    # 2. Nếu nguồn tổng hợp không có, đọc thông báo trên domain đang dùng
+    if not candidates:
+        for source in [_read_cached_domain(), *FALLBACK_DOMAINS]:
+            if not source:
+                continue
+            try:
+                res = requests.get(source, timeout=15, headers=headers)
+                if res.status_code == 200:
+                    candidates = _extract_domains(res.text)
+                    if candidates:
+                        print(f"🔎 Đọc thông báo từ {source}: {', '.join(candidates[:5])}")
+                        break
+            except Exception:
+                pass
+
+    # 3. Chọn domain đầu tiên còn sống (lấy domain cuối sau redirect)
     for domain in candidates[:5]:
-        if _domain_alive(domain):
-            _save_cached_domain(domain)
-            return domain
+        alive = _domain_alive(domain)
+        if alive:
+            _save_cached_domain(alive)
+            return alive
         print(f"⚠️ Domain không phản hồi: {domain}")
 
-    # 3. Dùng domain đã lưu từ lần chạy trước
+    # 4. Dùng domain đã lưu từ lần chạy trước
     cached = _read_cached_domain()
-    if cached and _domain_alive(cached):
-        print(f"♻️ Dùng domain đã lưu: {cached}")
-        return cached
+    if cached:
+        alive = _domain_alive(cached)
+        if alive:
+            print(f"♻️ Dùng domain đã lưu: {alive}")
+            return alive
 
-    # 4. Fallback cuối cùng
-    if _domain_alive(FALLBACK_DOMAIN):
-        _save_cached_domain(FALLBACK_DOMAIN)
-        return FALLBACK_DOMAIN
+    # 5. Fallback cuối cùng
+    for domain in FALLBACK_DOMAINS:
+        alive = _domain_alive(domain)
+        if alive:
+            _save_cached_domain(alive)
+            return alive
 
     print("⚠️ Không kiểm tra được domain nào, dùng fallback mặc định.")
     return FALLBACK_DOMAIN
