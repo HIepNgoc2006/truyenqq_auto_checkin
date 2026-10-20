@@ -130,21 +130,27 @@ def check_in():
             # Xử lý giao diện Nhận thưởng / Điểm danh mới trên trang /coins
             print("Đang tìm tab Nhiệm vụ hoặc nút Điểm danh...")
             
-            # Nếu có tab Nhiệm vụ (giao diện mới)
-            nhiem_vu_tab = page.locator("text='Nhiệm vụ'").first
-            if nhiem_vu_tab.count() > 0 and nhiem_vu_tab.is_visible():
+            # Giao diện mới: tab Nhiệm vụ -> nhiệm vụ "Điểm danh hàng ngày"
+            mission_tab = page.locator("a.coins-tab[data-tab='mission']")
+            if mission_tab.count() > 0 and mission_tab.is_visible():
                 print("Tìm thấy tab Nhiệm vụ, đang chuyển tab...")
-                nhiem_vu_tab.evaluate("node => node.click()")
-                time.sleep(2)
-                
-                # Tìm nút Thực hiện cạnh Điểm danh hàng ngày
-                thuc_hien_btn = page.locator("text='Thực hiện', button:has-text('Thực hiện')").first
-                if thuc_hien_btn.count() > 0 and thuc_hien_btn.is_visible():
-                    thuc_hien_btn.evaluate("node => node.click()")
-                    time.sleep(5)
-                    send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
+                mission_tab.click()
+                page.wait_for_timeout(2000)
+
+                checkin_btn = page.locator("button.btn-mission[data-url='#checkin']")
+                if checkin_btn.count() > 0 and checkin_btn.first.is_visible():
+                    classes = checkin_btn.first.get_attribute("class") or ""
+                    if "todo" in classes:
+                        print("Đang bấm nút Điểm danh hàng ngày...")
+                        checkin_btn.first.click()
+                        page.wait_for_timeout(4000)
+                        classes_after = checkin_btn.first.get_attribute("class") or ""
+                        print(f"Trạng thái nhiệm vụ sau khi bấm: {classes_after}")
+                        send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
+                    else:
+                        send_notification("ℹ️ Hôm nay bạn đã điểm danh TruyenQQ rồi.")
                 else:
-                    send_notification("⚠️ Không tìm thấy nút Thực hiện. (Có thể bạn đã điểm danh rồi).")
+                    send_notification("⚠️ Không tìm thấy nhiệm vụ Điểm danh hàng ngày. (Có thể bạn đã điểm danh rồi).")
             else:
                 # Fallback tìm nút điểm danh trực tiếp
                 checkin_button = None
