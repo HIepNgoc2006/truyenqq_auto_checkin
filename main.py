@@ -127,56 +127,29 @@ def check_in():
                     send_notification("❌ Đăng nhập thất bại: Chưa cấu hình Email và Mật khẩu (Cookie có thể đã hết hạn).")
                     sys.exit(1)
 
-            # Xử lý giao diện Nhận thưởng / Điểm danh mới trên trang /coins
-            print("Đang tìm tab Nhiệm vụ hoặc nút Điểm danh...")
-            
-            # Giao diện mới: tab Nhiệm vụ -> nhiệm vụ "Điểm danh hàng ngày"
-            mission_tab = page.locator("a.coins-tab[data-tab='mission']")
-            if mission_tab.count() > 0 and mission_tab.is_visible():
-                print("Tìm thấy tab Nhiệm vụ, đang chuyển tab...")
-                mission_tab.click()
-                page.wait_for_timeout(2000)
+            # Gọi API điểm danh trực tiếp (coins.js dùng POST /coins với action=daily_checkin)
+            print("Đang gọi API điểm danh...")
+            resp = page.request.post(
+                f"{latest_domain}/coins",
+                form={"action": "daily_checkin"},
+                headers={"Referer": f"{latest_domain}/coins"},
+            )
+            try:
+                data = resp.json()
+            except Exception:
+                send_notification(f"❌ API điểm danh trả về dữ liệu không hợp lệ (HTTP {resp.status}).")
+                sys.exit(1)
 
-                checkin_btn = page.locator("button.btn-mission[data-url='#checkin']")
-                if checkin_btn.count() > 0 and checkin_btn.first.is_visible():
-                    classes = checkin_btn.first.get_attribute("class") or ""
-                    if "todo" in classes:
-                        print("Đang bấm nút Điểm danh hàng ngày...")
-                        checkin_btn.first.click()
-                        page.wait_for_timeout(4000)
-                        classes_after = checkin_btn.first.get_attribute("class") or ""
-                        print(f"Trạng thái nhiệm vụ sau khi bấm: {classes_after}")
-                        send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
-                    else:
-                        send_notification("ℹ️ Hôm nay bạn đã điểm danh TruyenQQ rồi.")
-                else:
-                    send_notification("⚠️ Không tìm thấy nhiệm vụ Điểm danh hàng ngày. (Có thể bạn đã điểm danh rồi).")
+            if data.get("status") == 1:
+                info = data.get("data") or {}
+                send_notification(
+                    f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}! "
+                    f"+{info.get('amount', '?')} {info.get('reward_type', 'coin')}, "
+                    f"chuỗi {info.get('streak', '?')} ngày, số dư {info.get('balance', '?')}."
+                )
             else:
-                # Fallback tìm nút điểm danh trực tiếp
-                checkin_button = None
-                for text_to_find in ["Điểm danh", "Nhận thưởng", "Nhận xu", "Điểm Danh", "ĐIỂM DANH"]:
-                    btns = page.get_by_text(text_to_find)
-                    for i in range(btns.count()):
-                        if btns.nth(i).is_visible():
-                            checkin_button = btns.nth(i)
-                            break
-                    if checkin_button:
-                        break
-
-                if checkin_button:
-                    checkin_button.evaluate("node => node.click()")
-                    time.sleep(5)
-                    # Bấm xác nhận nếu có
-                    try:
-                        confirm_btn = page.locator("text='Đồng ý', text='Xác nhận', text='OK', button:has-text('Đồng ý')").first
-                        if confirm_btn.count() > 0 and confirm_btn.is_visible():
-                            confirm_btn.evaluate("node => node.click()")
-                            time.sleep(2)
-                    except:
-                        pass
-                    send_notification(f"✅ Đã điểm danh TruyenQQ thành công trên {latest_domain}!")
-                else:
-                    send_notification("⚠️ Không tìm thấy tab Nhiệm vụ hoặc nút Điểm danh. (Có thể bạn đã điểm danh rồi hoặc bị che khuất).")
+                err = data.get("error") or data.get("message") or "không rõ lý do"
+                send_notification(f"ℹ️ Chưa điểm danh được: {err}")
 
         except Exception as e:
             send_notification(f"❌ Lỗi trong quá trình chạy script: {e}")
