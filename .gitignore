@@ -26,6 +26,7 @@ venv/
 logs/
 .lock
 .cache/
+.domain
 
 # Playwright
 test-results/

@@ -10,6 +10,11 @@ from playwright_stealth import Stealth
 if sys.stdout.encoding != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8')
 
+USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+FALLBACK_DOMAIN = "https://truyenqqko.com"
+DOMAIN_SOURCE = "https://truyenqq.link"
+DOMAIN_CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".domain")
+
 def send_notification(message):
     """Gửi thông báo qua Telegram hoặc Discord nếu được cấu hình"""
     print(f"📢 {message}")
@@ -33,21 +38,85 @@ def send_notification(message):
             print(f"⚠️ Lỗi gửi thông báo Discord: {e}")
 
 
-def get_latest_domain():
+def _domain_alive(domain):
+    """Kiểm tra domain còn phục vụ trang TruyenQQ thật hay không."""
     try:
-        # Trang truyenqq.link luôn trỏ về tên miền mới nhất
-        res = requests.get("https://truyenqq.link", timeout=10)
-        
-        # Tìm các link có dạng https://truyenqqxxx.com/lich-su
-        match = re.search(r'href="(https://truyenqq[^\/"]+)/lich-su"', res.text)
-        if match:
-            domain = match.group(1)
+        res = requests.get(domain, timeout=15, headers={"User-Agent": USER_AGENT})
+        if res.status_code != 200:
+            return False
+        text = res.text.lower()
+        return "truyenqq" in text or "truyện" in text
+    except Exception:
+        return False
+
+
+def _extract_domains(html):
+    """Lấy mọi domain có link /lich-su, ưu tiên domain chứa 'truyenqq'."""
+    found = []
+    for domain in re.findall(r'href="(https?://[^/"]+)/lich-su"', html):
+        domain = domain.rstrip("/")
+        if domain == DOMAIN_SOURCE or domain in found:
+            continue
+        found.append(domain)
+    found.sort(key=lambda d: 0 if "truyenqq" in d.lower() else 1)
+    return found
+
+
+def _read_cached_domain():
+    try:
+        with open(DOMAIN_CACHE, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def _save_cached_domain(domain):
+    try:
+        with open(DOMAIN_CACHE, "w", encoding="utf-8") as f:
+            f.write(domain + "\n")
+    except OSError as e:
+        print(f"⚠️ Không ghi được cache domain: {e}")
+
+
+def get_latest_domain():
+    headers = {"User-Agent": USER_AGENT}
+    candidates = []
+
+    # 1. Dò domain mới từ truyenqq.link, retry 3 lần
+    for attempt in range(1, 4):
+        try:
+            res = requests.get(DOMAIN_SOURCE, timeout=20, headers=headers)
+            if res.status_code == 200:
+                candidates = _extract_domains(res.text)
+                if candidates:
+                    print(f"🔎 Domain ứng viên: {', '.join(candidates[:5])}")
+                    break
+            print(f"⚠️ Lần {attempt}: truyenqq.link trả HTTP {res.status_code}.")
+        except Exception as e:
+            print(f"⚠️ Lần {attempt}: không truy vấn được truyenqq.link ({e}).")
+        if attempt < 3:
+            time.sleep(2 * attempt)
+
+    # 2. Chọn domain đầu tiên còn sống
+    for domain in candidates[:5]:
+        if _domain_alive(domain):
+            _save_cached_domain(domain)
             return domain
-    except Exception as e:
-        print(f"⚠️ Lỗi khi tìm tên miền mới nhất: {e}")
-    
-    fallback = "https://truyenqqko.com"
-    return fallback
+        print(f"⚠️ Domain không phản hồi: {domain}")
+
+    # 3. Dùng domain đã lưu từ lần chạy trước
+    cached = _read_cached_domain()
+    if cached and _domain_alive(cached):
+        print(f"♻️ Dùng domain đã lưu: {cached}")
+        return cached
+
+    # 4. Fallback cuối cùng
+    if _domain_alive(FALLBACK_DOMAIN):
+        _save_cached_domain(FALLBACK_DOMAIN)
+        return FALLBACK_DOMAIN
+
+    print("⚠️ Không kiểm tra được domain nào, dùng fallback mặc định.")
+    return FALLBACK_DOMAIN
 
 def parse_cookie_string(cookie_string, url):
     cookies = []
@@ -80,7 +149,7 @@ def check_in():
             args=["--disable-blink-features=AutomationControlled"]
         )
         context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            user_agent=USER_AGENT
         )
         
         if cookie_str:
